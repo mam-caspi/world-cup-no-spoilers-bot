@@ -1,0 +1,14 @@
+{
+  "name": "fifa-highlights-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Auto-fills spoiler-free FIFA highlight links for finished World Cup matches.",
+  "scripts": {
+    "update": "node update-highlights.mjs",
+    "backfill": "node update-highlights.mjs --all"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}
