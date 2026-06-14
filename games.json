@@ -98,8 +98,8 @@
     "verified": true,
     "fifa_match_id": "400021456",
     "fifa_match_centre_url": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021456?country=IL",
-    "fifa_watch_url": null,
-    "fifa_highlights_status": "pending"
+    "fifa_watch_url": "https://www.fifa.com/en/watch/1e8ayUzYWGZDbZUEU42bgQ",
+    "fifa_highlights_status": "available"
   },
   {
     "group": "C",
@@ -115,8 +115,8 @@
     "verified": true,
     "fifa_match_id": "400021453",
     "fifa_match_centre_url": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021453?country=IL",
-    "fifa_watch_url": null,
-    "fifa_highlights_status": "pending"
+    "fifa_watch_url": "https://www.fifa.com/en/watch/1amePIIN9Rt7kvMwQGMPke",
+    "fifa_highlights_status": "available"
   },
   {
     "group": "D",
