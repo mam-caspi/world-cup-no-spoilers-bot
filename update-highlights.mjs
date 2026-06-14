@@ -23,23 +23,51 @@ import fs from "node:fs";
 
 const DATA_FILE = process.env.DATA_FILE || "games.json";
 const ALL = process.argv.includes("--all");
-const GRACE_MS = 90 * 60 * 1000; // assume a game can have highlights ~90 min after kickoff+match
+// Only poll a game inside its "just finished" window:
+//   start ~1h40m after kickoff (game is over) and stop 24h after kickoff.
+const MIN_LAG_MS  = 100 * 60 * 1000;       // earliest a highlight could exist
+const HARD_MAX_MS = 24 * 60 * 60 * 1000;   // give up 24h after kickoff
 
 const games = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
 
+function kickoffMs(g) {
+  if (!g.datetime || g.datetime.length <= 10) return null;
+  const t = new Date(g.datetime).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+
 function isCandidate(g) {
   if (g.fifa_highlights_status === "available" && g.fifa_watch_url) return false;
+  if (g.fifa_highlights_status === "unavailable") return false; // gave up
   if (!g.fifa_match_centre_url) return false;
-  if (ALL) return true;
-  // only bother once enough time has passed since kickoff (game likely over + highlight cut)
-  if (!g.datetime || g.datetime.length <= 10) return true; // unknown time -> try
-  const ko = new Date(g.datetime).getTime();
-  return Date.now() > ko + 105 * 60 * 1000 + GRACE_MS; // ~match length + highlight lag
+  if (ALL) return true;                       // manual backfill ignores timing
+  const ko = kickoffMs(g);
+  if (ko === null) return true;               // unknown time -> attempt
+  const age = Date.now() - ko;
+  return age >= MIN_LAG_MS && age <= HARD_MAX_MS; // inside the polling window
 }
 
 const candidates = games.filter(isCandidate);
 console.log(`pending candidates: ${candidates.length}`);
-if (candidates.length === 0) process.exit(0);
+
+// Close out games whose window has passed without a link, so they stop being
+// checked and the site can show a clear state.
+let gaveUp = 0;
+for (const g of games) {
+  if (g.fifa_highlights_status === "available") continue;
+  if (g.fifa_highlights_status === "unavailable") continue;
+  const ko = kickoffMs(g);
+  if (ko !== null && Date.now() - ko > HARD_MAX_MS) {
+    g.fifa_highlights_status = "unavailable";
+    gaveUp++;
+  }
+}
+
+if (candidates.length === 0) {
+  if (gaveUp > 0) fs.writeFileSync(DATA_FILE, JSON.stringify(games, null, 2) + "\n");
+  console.log(`no candidates. gave up on ${gaveUp}. done.`);
+  process.exit(0);
+}
 
 /* -------- 1) optional FIFA API fast path --------
  * If you capture the real request in DevTools (Network tab on a finished
@@ -140,7 +168,7 @@ for (const g of candidates) {
 
 await browser.close();
 
-if (updated > 0) {
+if (updated > 0 || gaveUp > 0) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(games, null, 2) + "\n");
 }
-console.log(`done. updated ${updated} match(es).`);
+console.log(`done. updated ${updated} match(es). gave up on ${gaveUp}.`);
